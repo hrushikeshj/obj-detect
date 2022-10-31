@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, Response, redirect, url_for
+from flask import Flask, flash, render_template, request, Response, redirect, url_for, session
 from flask_bootstrap import Bootstrap
+from models import User
+from database import db_session
 
 from object_detection import *
 from camera_settings import *
@@ -7,14 +9,63 @@ from camera_settings import *
 
 application = Flask(__name__)
 Bootstrap(application)
-
+application.secret_key = 'qwert23456##\l'
 
 check_settings()
 VIDEO = VideoStreaming()
 
 
+@application.route("/sign_up")
+def signup():
+    return render_template("sign_up.html")
+
+@application.route("/user", methods=['post'])
+def create_user():
+    data = request.form
+    e_user = User.query.filter(User.email == data["email"]).first()
+    if e_user is not None:
+        flash("Email is already taken!", 'danger')
+        return redirect(url_for('signup'))
+
+    
+    user = User(**data)
+    db_session.add(user)
+    db_session.commit()
+    flash("Accout created", 'success')
+    return redirect(url_for('login'))
+
+
+@application.route("/login")
+def login():
+    return render_template("login.html")
+
+@application.route("/session", methods=['post'])
+def create_session():
+    data = request.form
+    e_user = User.query.filter(User.email == data["email"]).first()
+    if e_user is None:
+        flash("User not found", 'danger')
+        return redirect(url_for('login'))
+    
+    if e_user.val(data["password"]) == False:
+        flash("Wrong passwoed", 'danger')
+        return redirect(url_for('login'))
+
+    session["username"] = e_user.name
+    flash("Logged in!!", 'success')
+    return redirect(url_for('home'))
+
+@application.route("/logout")
+def logout():
+    session.pop("username", None)
+    flash("Logged out!!", 'success')
+    return redirect(url_for('login'))
+
 @application.route("/")
 def home():
+    if "username" not in session:
+        flash("Login to detect objects", 'danger')
+        return redirect(url_for('login'))
     TITLE = "Object detection"
     return render_template("index.html", TITLE=TITLE)
 
@@ -88,4 +139,4 @@ def reset_camera():
 
 
 if __name__ == "__main__":
-    application.run(debug=True)
+    application.run(debug=True, host='0.0.0.0')
