@@ -39,6 +39,7 @@ def create_user():
 def login():
     return render_template("login.html")
 
+
 @application.route("/session", methods=['post'])
 def create_session():
     data = request.form
@@ -55,11 +56,13 @@ def create_session():
     flash("Logged in!!", 'success')
     return redirect(url_for('home'))
 
+
 @application.route("/logout")
 def logout():
     session.pop("username", None)
     flash("Logged out!!", 'success')
     return redirect(url_for('login'))
+
 
 @application.route("/")
 def home():
@@ -79,6 +82,12 @@ def video_feed():
         VIDEO.show(),
         mimetype="multipart/x-mixed-replace; boundary=frame"
     )
+
+@application.route("/obj_dect")
+def obj_dect_json():
+    j = VIDEO.show_dict()
+    #print(j)
+    return {'ans': j}
 
 
 # * Button requests
